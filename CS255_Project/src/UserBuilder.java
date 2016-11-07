@@ -3,7 +3,7 @@ public class UserBuilder {
 	private static Label[] masterSet;
 	
 	public static User[] createPopulation(int n, Label[] traitSet){
-		System.out.print("Building population...");
+		System.out.print("Building Master Pop. set...");
 		User[] pop = new User[n];
 		for(int i = 0; i < n;  i++){
 			User u = new User();

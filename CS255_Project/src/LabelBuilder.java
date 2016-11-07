@@ -4,7 +4,7 @@ public class LabelBuilder {
 	
 	
 	public static Label[] getLabelSet(){
-		System.out.print("Building labels...");
+		System.out.print("Building Master Label set...");
 		Label[] mySet = new Label[10];
 		
 		/*
