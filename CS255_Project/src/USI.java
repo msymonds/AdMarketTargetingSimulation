@@ -5,6 +5,7 @@ public class USI {
 	Characteristic[] traits = new Characteristic[10];
 	ArrayList<User> pop = new ArrayList<User>();
 	double rSubI = 0.0;
+	double hSubI = 0.0;
 	double labelCost = 0.0;
 	
 	
@@ -38,13 +39,30 @@ public class USI {
 		}
 	}
 	
-	public double calculateRsubI(USI usersRemaining){
-		// need to implement
+	public double calculateRsubI(USI targetPop){
+		// (sum of U(Si) also in U(St) whose f(x) < 1)) / (|U(Si)| * P(Si))
+		rSubI = 0.0;
+		hSubI = 0.0;
+		double cumulativeRi = 0.0;
+		Iterator pIter = pop.iterator();
+		while(pIter.hasNext()){
+			User u = (User)pIter.next();
+			if(targetPop.hasUser(u) && (u.getUserObjectiveFunction() < 1.0)){
+				cumulativeRi += u.getUserObjectiveFunction();
+				if(u.getUserObjectiveFunction() < 0.9 && u.getUserObjectiveFunction() > hSubI)
+					hSubI = u.getUserObjectiveFunction();
+			}
+		}
+		rSubI = (cumulativeRi / (getLabelCost() * getPopSize()));
 		return rSubI;
 	}
 	
 	public double getRsubI(){
 		return rSubI;
+	}
+	
+	public double getHsubI(){
+		return hSubI;
 	}
 	
 	public Characteristic[] getTraits(){
@@ -97,5 +115,15 @@ public class USI {
 		}
 		
 		return result;
+	}
+	
+	public boolean hasUser(User u){
+		Iterator iter = pop.iterator();
+		while(iter.hasNext()){
+			User uC = (User)iter.next();
+			if(u.equals(uC))
+				return true;
+		}
+		return false;
 	}
 }

@@ -5,8 +5,10 @@ public class Driver {
 	
 	static final Label[] masterLabelSet = LabelBuilder.getLabelSet();
 	static final User[] masterPopulation = UserBuilder.createPopulation(100000, masterLabelSet);
+	static USI[] workingPermutations;
 	static USI targetPop; 
 	static double budget = 0.0;
+	static double sTCost = 0.0;
 	
 	public static void main(String[] args){
 		
@@ -22,23 +24,57 @@ public class Driver {
 		printLabelSet(sT);
 		System.out.print("P(St): $" + targetPop.getLabelCost());
 		System.out.print("\t|U(St)|: " + targetPop.getPopSize());
-		double br = targetPop.getLabelCost()*targetPop.getPopSize();
-		int bri = (int)(br*100);
-		br = bri/100.0;
+		sTCost = targetPop.getLabelCost()*targetPop.getPopSize();
+		int bri = (int)(sTCost * 100);
+		sTCost = bri/100.0;
 		System.out.print("\tRequired budget ( |U(St)|*P(St) ): $" +
-		(br) + "\n\n");
+		(sTCost) + "\n\n");
+		budget = ((targetPop.getLabelCost()/2)*targetPop.getPopSize());
+		int adj = (int)(budget*100);
+		budget = adj/100.0;
 		
 		ArrayList<USI> permutations = getQualifiedPermutations(targetPop);
 		System.out.println("Number of qualified permutations S(1...n): " + permutations.size());
 		
-		budget = ((targetPop.getLabelCost()/2)*targetPop.getPopSize());
-		int adj = (int)(budget*100);
-		budget = adj/100.0;
 		System.out.println("\nAd budget (bo) set to 50% of required budget: $" + budget);
 		
+		workingPermutations = new USI[permutations.size()];
+		Iterator permIter = permutations.iterator();
+		int counter = 0;
+		while(permIter.hasNext()){
+			workingPermutations[counter] = (USI)permIter.next();
+			counter++;
+		}
+		
 		System.out.println("\nCalling original Approximation Algorithm(St, bo, S(1...n))");
-		//double[] b1 = OgAlgorithm.approxAlg(targetPop, budget, permutations);
-		//System.out.println("Done!");
+		double[] b1 = OgAlgorithm.approxAlg(targetPop, budget, workingPermutations);
+		System.out.println("Done!");
+		
+		System.out.println("Budget allocation result:\n");
+		int userNum = 0;
+		double bTotal = 0.0;
+		for(int i = 0; i < b1.length; i++){
+			if(b1[i] > 0.0){
+				System.out.print("b[" + i + "]: $" + b1[i]);
+				bTotal += b1[i];
+				System.out.println("\t|U(S)|: " + workingPermutations[i].getPopSize() +
+							" P(S): $" + workingPermutations[i].getLabelCost() +
+							"\nUsers in St:");
+					
+				ArrayList<User> pop = workingPermutations[i].getPop();
+				Iterator popIter = pop.iterator();
+				while(popIter.hasNext()){
+					User u = (User)popIter.next();
+					if(targetPop.hasUser(u)){
+						userNum++;
+						System.out.println(u.toString());
+					}
+				}
+				System.out.println("Total # users in St: " + userNum);	
+				userNum = 0;
+			} // has budget allocated
+		}
+		System.out.println("\nTotal Budget allocated: $" + bTotal);
 		
 	}
 	
@@ -133,7 +169,8 @@ public class Driver {
 														if(hasAtLeastOne(a)){
 															USI candidate = new USI(a);
 															
-															if(getIntersectingUsers(candidate) > 0){
+															if(getIntersectingUsers(candidate) > 0 &&
+																	budget > (candidate.getLabelCost()*candidate.getPopSize())){
 																result.add(candidate);
 															}
 														}
