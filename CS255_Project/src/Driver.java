@@ -49,7 +49,7 @@ public class Driver {
 		System.out.println("\nCalling original Approximation Algorithm(St, bo, S(1...n))");
 		double[] b1 = OgAlgorithm.approxAlg(targetPop, budget, workingPermutations);
 		System.out.println("Done!");
-		
+		int totalAlgUsers = 0;
 		System.out.println("Budget allocation result:\n");
 		int userNum = 0;
 		double bTotal = 0.0;
@@ -67,6 +67,7 @@ public class Driver {
 					User u = (User)popIter.next();
 					if(targetPop.hasUser(u)){
 						userNum++;
+						totalAlgUsers++;
 						System.out.println(u.toString());
 					}
 				}
@@ -76,6 +77,10 @@ public class Driver {
 		}
 		System.out.println("\nTotal Budget allocated: $" + bTotal);
 		
+		int sTUsersCovered = (int)(budget/targetPop.getLabelCost());
+		System.out.println("Total number of users if allocating only to St: " + sTUsersCovered);
+		System.out.println("Total number of users covered using algorithm: " + totalAlgUsers);
+		System.out.println("Diference: " + (totalAlgUsers - sTUsersCovered));
 	}
 	
 	

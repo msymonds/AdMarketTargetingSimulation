@@ -48,7 +48,7 @@ public class USI {
 		while(pIter.hasNext()){
 			User u = (User)pIter.next();
 			if(targetPop.hasUser(u) && (u.getUserObjectiveFunction() < 1.0)){
-				cumulativeRi += u.getUserObjectiveFunction();
+				cumulativeRi += 1;
 				if(u.getUserObjectiveFunction() < 0.9 && u.getUserObjectiveFunction() > hSubI)
 					hSubI = u.getUserObjectiveFunction();
 			}
