@@ -31,7 +31,6 @@ public class User {
 				s += "NULL";
 			else
 				s += traits[i].attributeS;
-			//s += ((traits[i].attributeS == null) ? "null" : traits[i].attributeS);
 			if(i < (traits.length-1))
 				s += ", ";
 		}

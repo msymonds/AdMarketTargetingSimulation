@@ -4,6 +4,8 @@ import java.util.Iterator;
 public class USI {
 	Characteristic[] traits = new Characteristic[10];
 	ArrayList<User> pop = new ArrayList<User>();
+	ArrayList<User> sharedWithST = new ArrayList<User>();
+	int sharedUsers = 0;
 	double rSubI = 0.0;
 	double hSubI = 0.0;
 	double labelCost = 0.0;
@@ -44,12 +46,12 @@ public class USI {
 		rSubI = 0.0;
 		hSubI = 0.0;
 		double cumulativeRi = 0.0;
-		Iterator pIter = pop.iterator();
+		Iterator pIter = sharedWithST.iterator();
 		while(pIter.hasNext()){
 			User u = (User)pIter.next();
-			if(targetPop.hasUser(u) && (u.getUserObjectiveFunction() < 1.0)){
+			if(u.getUserObjectiveFunction() < 1.0){
 				cumulativeRi += 1;
-				if(u.getUserObjectiveFunction() < 0.9 && u.getUserObjectiveFunction() > hSubI)
+				if(u.getUserObjectiveFunction() < 0.95 && u.getUserObjectiveFunction() > hSubI)
 					hSubI = u.getUserObjectiveFunction();
 			}
 		}
@@ -125,5 +127,47 @@ public class USI {
 				return true;
 		}
 		return false;
+	}
+	
+	public void findPopIntersection(USI sT){
+		int count = 0;
+		ArrayList<User> stUsers = sT.getPop();
+		ArrayList<User> myUsers = this.getPop();
+		Iterator stIter = stUsers.iterator();
+		while (stIter.hasNext()){
+			User nextSTUser = (User)stIter.next();
+			Iterator myIter = myUsers.iterator();
+			while(myIter.hasNext()){
+				User nextMyUser = (User)myIter.next();
+				if(nextSTUser.equals(nextMyUser)){
+					sharedWithST.add(nextSTUser);
+					count++;
+				}
+			}
+		}
+		sharedUsers = count;
+	}
+	
+	public ArrayList<User> getSharedWithST(){
+		return sharedWithST;
+	}
+	
+	public int getNumSharedUsers(){
+		return sharedUsers;
+	}
+	
+	public String getTraitsString(){
+		String s = "{";
+		for(int i = 0; i < traits.length; i++){
+			if(traits[i] != null)
+				s += traits[i].attributeS;
+			else
+				s += "NULL";
+			
+			if(i <(traits.length-1))
+				s += ", ";
+		}
+		s += "}";
+		return s;
 	}
 }

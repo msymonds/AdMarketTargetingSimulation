@@ -183,10 +183,8 @@ public class LabelBuilder {
 		
 		// optional Labels
 		int domainCount = 5;
-		//Label occupation_Industry = new Label();
 		
 		Label junkA = new Label();
-		//domainCount = getDomainCount();
 		for(int i = 0; i < domainCount; i++){
 			junkA.domain.add(new Characteristic("" + i));
 			junkA.domain.get(i).cost = ((Math.random()*.8) + 0.2);
@@ -194,7 +192,6 @@ public class LabelBuilder {
 		mySet[7] = junkA;
 		
 		Label junkB = new Label();
-		//domainCount = getDomainCount();
 		for(int i = 0; i < domainCount; i++){
 			junkB.domain.add(new Characteristic("" + i));
 			junkB.domain.get(i).cost = ((Math.random()*.8) + 0.2);
@@ -202,7 +199,6 @@ public class LabelBuilder {
 		mySet[8] = junkB;
 		
 		Label junkC = new Label();
-		//domainCount = getDomainCount();
 		for(int i = 0; i < domainCount; i++){
 			junkC.domain.add(new Characteristic("" + i));
 			junkC.domain.get(i).cost = ((Math.random()*.8) + 0.2);
@@ -210,21 +206,8 @@ public class LabelBuilder {
 		mySet[9] = junkC;
 		
 		
-//		Label junkD = new Label();
-//		//domainCount = getDomainCount();
-//		for(int i = 0; i < domainCount; i++){
-//			junkD.domain.add(new Characteristic("" + i));
-//		}
-//		mySet[11] = junkD;
-		
 		System.out.print("\tdone!\n");
 		return mySet;
 	}
 	
-	private int getDomainCount(){
-		int n = 0;
-		n = (int) ((Math.random()*8) + 2);
-		
-		return n;
-	}
 }

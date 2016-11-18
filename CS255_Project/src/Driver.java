@@ -5,39 +5,51 @@ public class Driver {
 	
 	static final Label[] masterLabelSet = LabelBuilder.getLabelSet();
 	static final User[] masterPopulation = UserBuilder.createPopulation(100000, masterLabelSet);
-	static USI[] workingPermutations;
-	static USI targetPop; 
-	static double budget = 0.0;
-	static double sTCost = 0.0;
+	
+	// for St
+	static USI targetPop; // target Label set and users associated with set
+	static double sTCost = 0.0; // (P(S) * |U(St)|)
+	static final double BUDGET_ADJUSTMENT = 0.3; // adjust here for single run
+	
+	// For OG Alg
+	static USI[] workingPermutations; // for OG Alg argument
+	static double budget = 0.0; // ((P(S) * |U(St)|) * BUDGET_ADJUSTMENT)
+	
+	// for My Alg
+	static USI[] myWorkingPermutations;
+	static double myBudget = 0.0;
 	
 	public static void main(String[] args){
 		
-		//printPopulation();
 		System.out.println("Master Pop size: " + masterPopulation.length);
 		Characteristic[] sT;
 		do{
 			sT = createRandomTargetLabelSet(4);
 			targetPop = new USI(sT);
-		} while(targetPop.getPopSize() < 100);
+		} while(targetPop.getPopSize() > 20 || targetPop.getPopSize() < 10);
 		
+		// print results of target Label selection
 		System.out.print("\ntargetPop (St): ");
 		printLabelSet(sT);
 		System.out.print("P(St): $" + targetPop.getLabelCost());
 		System.out.print("\t|U(St)|: " + targetPop.getPopSize());
 		sTCost = targetPop.getLabelCost()*targetPop.getPopSize();
-		int bri = (int)(sTCost * 100);
-		sTCost = bri/100.0;
+		int adj = (int)(sTCost * 100);
+		sTCost = adj/100.0;
 		System.out.print("\tRequired budget ( |U(St)|*P(St) ): $" +
-		(sTCost) + "\n\n");
-		budget = ((targetPop.getLabelCost()/2)*targetPop.getPopSize());
-		int adj = (int)(budget*100);
-		budget = adj/100.0;
+		(sTCost) + "\n");
 		
-		ArrayList<USI> permutations = getQualifiedPermutations(targetPop);
-		System.out.println("Number of qualified permutations S(1...n): " + permutations.size());
+		System.out.println("Info on targetPop: " + targetPop.getTraitsString());
+		Iterator tIter = targetPop.getPop().iterator();
+		while (tIter.hasNext()){
+			User u = (User)tIter.next();
+			System.out.println("\nUser: " + u.toString());
+		}
 		
-		System.out.println("\nAd budget (bo) set to 50% of required budget: $" + budget);
 		
+		//prep and run OG Alg
+		ArrayList<USI> permutations = OGAlgPrep.getQualifiedPermutations(targetPop);
+		System.out.println("\nNumber of qualified permutations S(1...n): " + permutations.size());		
 		workingPermutations = new USI[permutations.size()];
 		Iterator permIter = permutations.iterator();
 		int counter = 0;
@@ -45,42 +57,24 @@ public class Driver {
 			workingPermutations[counter] = (USI)permIter.next();
 			counter++;
 		}
+		runOnce(workingPermutations, 0);
+		runSeries(workingPermutations, 0);
 		
-		System.out.println("\nCalling original Approximation Algorithm(St, bo, S(1...n))");
-		double[] b1 = OgAlgorithm.approxAlg(targetPop, budget, workingPermutations);
-		System.out.println("Done!");
-		int totalAlgUsers = 0;
-		System.out.println("Budget allocation result:\n");
-		int userNum = 0;
-		double bTotal = 0.0;
-		for(int i = 0; i < b1.length; i++){
-			if(b1[i] > 0.0){
-				System.out.print("b[" + i + "]: $" + b1[i]);
-				bTotal += b1[i];
-				System.out.println("\t|U(S)|: " + workingPermutations[i].getPopSize() +
-							" P(S): $" + workingPermutations[i].getLabelCost() +
-							"\nUsers in St:");
-					
-				ArrayList<User> pop = workingPermutations[i].getPop();
-				Iterator popIter = pop.iterator();
-				while(popIter.hasNext()){
-					User u = (User)popIter.next();
-					if(targetPop.hasUser(u)){
-						userNum++;
-						totalAlgUsers++;
-						System.out.println(u.toString());
-					}
-				}
-				System.out.println("Total # users in St: " + userNum);	
-				userNum = 0;
-			} // has budget allocated
+		
+		
+		// prep and run My Alg
+		ArrayList<USI> myPermutations = MyAlgPrep.getQualifiedPermutations(targetPop);
+		System.out.println("\nNumber of my qualified permutations S(1...n): " + myPermutations.size());		
+		myWorkingPermutations = new USI[myPermutations.size()];
+		Iterator myPermIter = myPermutations.iterator();
+		counter = 0;
+		while(myPermIter.hasNext()){
+			myWorkingPermutations[counter] = (USI)myPermIter.next();
+			counter++;
 		}
-		System.out.println("\nTotal Budget allocated: $" + bTotal);
+		runOnce(myWorkingPermutations, 1);
+		runSeries(myWorkingPermutations, 1);
 		
-		int sTUsersCovered = (int)(budget/targetPop.getLabelCost());
-		System.out.println("Total number of users if allocating only to St: " + sTUsersCovered);
-		System.out.println("Total number of users covered using algorithm: " + totalAlgUsers);
-		System.out.println("Diference: " + (totalAlgUsers - sTUsersCovered));
 	}
 	
 	
@@ -117,166 +111,6 @@ public class Driver {
 		return result;
 	}
 	
-	public static ArrayList<USI> getQualifiedPermutations(USI sT){
-		System.out.println("Generating Qualified Permutations of St = S(1...n)...");
-		ArrayList<USI> result = new ArrayList<USI>();
-		Label[] pool = getLabelPool(sT.pop);
-		long exp = 1;
-		int sum = 0;
-		System.out.print("Total number of traits pooled from St: ");
-		for(int i = 0; i < pool.length; i++){
-			int count = 0;
-			ArrayList<Characteristic> c = pool[i].domain;
-			Iterator iter = c.iterator();
-			while(iter.hasNext()){
-				iter.next();
-				count++;
-			}
-			System.out.print("" + count + " + ");
-			sum += count;
-			exp *= (count + 1);
-		}
-		System.out.print("= " + sum + "\n");
-		System.out.println("Expected number of raw permutations: " + exp);
-		long masterCount = 0;
-		ArrayList<Characteristic[]> rawPermutations = new ArrayList<Characteristic[]>();
-		if(exp < Integer.MAX_VALUE){
-			System.out.print("Examining raw permutations...");
-			for(int i = 0; i < (pool[0].domain.size()+1); i++){
-				for(int j = 0; j < (pool[1].domain.size()+1); j++){
-					for(int k = 0; k < (pool[2].domain.size()+1); k++){
-						for(int m = 0; m < (pool[3].domain.size()+1); m++){
-							for(int n = 0; n < (pool[4].domain.size()+1); n++){
-								for(int p = 0; p < (pool[5].domain.size()+1); p++){
-									for(int q = 0; q < (pool[6].domain.size()+1); q++){
-										for(int r = 0; r < (pool[7].domain.size()+1); r++){
-											for(int s = 0; s < (pool[8].domain.size()+1); s++){
-												for(int t = 0; t < (pool[9].domain.size()+1); t++){
-													Characteristic[] a = {
-															(i < pool[0].domain.size() ? pool[0].domain.get(i) : null),
-															(j < pool[1].domain.size() ? pool[1].domain.get(j) : null),
-															(k < pool[2].domain.size() ? pool[2].domain.get(k) : null),
-															(m < pool[3].domain.size() ? pool[3].domain.get(m) : null),
-															(n < pool[4].domain.size() ? pool[4].domain.get(n) : null),
-															(p < pool[5].domain.size() ? pool[5].domain.get(p) : null),
-															(q < pool[6].domain.size() ? pool[6].domain.get(q) : null),
-															(r < pool[7].domain.size() ? pool[7].domain.get(r) : null),
-															(s < pool[8].domain.size() ? pool[8].domain.get(s) : null),
-															(t < pool[9].domain.size() ? pool[9].domain.get(t) : null)
-													};
-													masterCount++;
-													double rawCost = 0;
-													for(int v = 0; v < 10; v++){
-														if(a[v] != null)
-															rawCost += a[v].cost;
-													}
-													if(rawCost < sT.getLabelCost()){
-														if(hasAtLeastOne(a)){
-															USI candidate = new USI(a);
-															
-															if(getIntersectingUsers(candidate) > 0 &&
-																	budget > (candidate.getLabelCost()*candidate.getPopSize())){
-																result.add(candidate);
-															}
-														}
-													}
-													if(masterCount % 1000000 == 0)
-														System.out.print(".");
-												}
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		} else {
-			System.out.println("Value too large to create raw permutations");
-		}
-		System.out.print("...done!!\n");
-		Characteristic[] cut = new Characteristic[10];
-		USI u = USI.getUSI(cut, result);
-		if(u != null)
-			System.out.print("\nNull USI object removed: " + result.remove(u) + "\n");
-		
-		return result;
-	}
-	
-	private static Label[] getLabelPool(ArrayList<User> pop){
-		
-		Label[] pool = new Label[10];
-		for(int i = 0; i < 10; i++)
-			pool[i] = new Label();
-		Iterator popIter = pop.iterator();
-		while(popIter.hasNext()){
-			User u = (User)popIter.next();
-			Characteristic[] c = u.traits;
-			for(int i = 0; i < 10; i++){
-				if(c[i] != null){
-					//String s = c[i].attributeS;
-					boolean isPresent = false;
-					ArrayList<Characteristic> list = pool[i].domain;
-					Iterator cIter = list.iterator();
-					while(cIter.hasNext()){
-						Characteristic cL = ((Characteristic)cIter.next());
-						if(c[i].equals(cL))
-							isPresent = true;
-					}
-					if(!isPresent){
-						pool[i].domain.add(c[i]);
-					}
-				}	
-			}
-		}		
-		return pool;
-	}
-	
-	public static int getIntersectingUsers(USI next){
-		int result = 0;
-		ArrayList<User> candidate = next.pop;
-		ArrayList<User> master = targetPop.pop;
-		int counter = 0;
-		
-		
-		int sum1 = candidate.size();
-		int sum2 = master.size();
-		Iterator citer = candidate.iterator();
-		while(citer.hasNext()){
-			Iterator miter = master.iterator();
-			User c = (User)citer.next();
-			while(miter.hasNext()){
-				User m = (User)miter.next();
-				if(c.equals(m))
-					result++;
-				counter++;
-			}
-		}
-		
-		return result;
-	}
-	
-	
-	
-	public static boolean hasAtLeastOne(Characteristic[] candidate){
-		ArrayList<User> master = targetPop.pop;
-		Iterator iter = master.iterator();
-		while(iter.hasNext()){
-			User mU = (User)iter.next();
-			Characteristic[] m = mU.traits;
-			boolean trial = true;
-			for(int i = 0; i < candidate.length; i++){
-				if(candidate[i] != null){
-					if(m[i] == null || (!(candidate[i].equals(m[i]))))
-						trial = false;
-				}
-			}
-			if(trial)
-				return true;
-		}
-		return false;
-	}
 	
 	public static void printLabelSet(Characteristic[] sI){
 		System.out.print("{");
@@ -290,5 +124,128 @@ public class Driver {
 		System.out.println("}");
 	}
 	
+	public static void runOnce(USI[] mySi, int choice){
+		Iterator stIter = targetPop.getPop().iterator();
+		while(stIter.hasNext()){
+			User u = (User)stIter.next();
+			u.objectFunction = 0.0;
+		}
+		for(int j = 0; j < mySi.length; j++){
+			mySi[j].hSubI = 0.0;
+			mySi[j].rSubI = 0.0;
+		}
+		
+		int adj = 0;
+		budget = (sTCost * BUDGET_ADJUSTMENT);
+		adj = (int)(budget*100);
+		budget = adj/100.0;
+		System.out.println("Ad budget (bo) set to " + (BUDGET_ADJUSTMENT * 100) +
+				"% of required budget: $" + budget);
+		double[] b1;
+		if(choice == 0){
+			System.out.println("\nCalling original Approximation Algorithm(St, bo, S(1...n)) once");
+			b1 = OgAlgorithm.approxAlg(targetPop, budget, mySi);
+			
+		} else {
+			System.out.println("\nCalling My Approximation Algorithm(St, bo, S(1...n)) once");
+			b1 = MyAlgorithm.myApproxAlg(targetPop, budget, mySi);
+			
+		}
+		System.out.println("Done!");
+		
+		reportSingleRun(b1);
+		
+	}
+	
+	public static void runSeries(USI[] mySi, int choice){
+		
+		for(int i = 9; i > 0; i--){
+			
+			// clear/reset f(x) for all U(St), and Hi, Ri for all Si
+			Iterator stIter = targetPop.getPop().iterator();
+			while(stIter.hasNext()){
+				User u = (User)stIter.next();
+				u.objectFunction = 0.0;
+			}
+			for(int j = 0; j < mySi.length; j++){
+				mySi[j].hSubI = 0.0;
+				mySi[j].rSubI = 0.0;
+			}
+			
+			double currentBudget = (sTCost * (i/10.0));
+			double[] b1;
+			if(choice == 0){
+				System.out.println("\nCalling original Approximation Algorithm(St, bo, S(1...n)) in series...");
+				b1 = OgAlgorithm.approxAlg(targetPop, currentBudget, mySi);
+			}
+			else{
+				System.out.println("\nCalling My Approximation Algorithm(St, bo, S(1...n)) in series...");
+				b1 = MyAlgorithm.myApproxAlg(targetPop, currentBudget, mySi);
+			}
+			reportSeriesRun(b1, (i * 10), currentBudget);
+			
+		}
+	}
+	
+	public static void reportSingleRun(double[] b1){
+		int totalAlgUsers = 0;
+		System.out.println("Budget allocation result:");
+		double bTotal = 0.0;
+		for(int i = 0; i < b1.length; i++){
+			if(b1[i] > 0.0){
+				System.out.print("\nSi[" + i + "]: Budget allocated: $" + b1[i]);
+				bTotal += b1[i];
+				System.out.println("\t|U(S)|: " + workingPermutations[i].getPopSize() +
+							"\tP(S): $" + workingPermutations[i].getLabelCost() +
+							"\t(P(S) * |U(S)|: $)" + workingPermutations[i].getLabelCost() * workingPermutations[i].getPopSize() + 
+							"\nSi label set: " + workingPermutations[i].getTraitsString() +
+							"\n" + workingPermutations[i].getNumSharedUsers() + " user" +
+							(workingPermutations[i].getNumSharedUsers() > 1 ? "s":"") + " in Si also in St:");
+					
+				ArrayList<User> pop = workingPermutations[i].getPop();
+				Iterator popIter = pop.iterator();
+				while(popIter.hasNext()){
+					User u = (User)popIter.next();
+					if(targetPop.hasUser(u)){
+						totalAlgUsers++;
+						System.out.println(u.toString());
+					}
+				}
+			} // has budget allocated
+		}
+		System.out.println("\nTotal Budget allocated: $" + bTotal);
+		
+		int sTUsersCovered = (int)(budget/targetPop.getLabelCost());
+		double percentDif = ((double)(totalAlgUsers - sTUsersCovered)/(double)sTUsersCovered);
+		int adj = (int)(percentDif * 10000);
+		percentDif = adj/100.0;
+		System.out.println("Total number of users covered if allocating only to St: " + sTUsersCovered);
+		System.out.println("Total number of users covered using algorithm: " + totalAlgUsers);
+		System.out.println("Diference: " + (totalAlgUsers - sTUsersCovered) +
+				"\tPercentage improvement: " + (percentDif) + "%");
+	}
+	
+	public static void reportSeriesRun(double[] b1, double adjustment, double currentBudget){
+		int adj = 0;
+		int totalAlgUsers = 0;
+		double bTotal = 0.0;
+		for(int k = 0; k < b1.length; k++){
+			if(b1[k] > 0.0){
+				bTotal += b1[k];
+				totalAlgUsers += workingPermutations[k].getNumSharedUsers();
+			} // has budget allocated
+		}
+		System.out.println("\nAt " + adjustment + "% of total St cost of $" + 
+				sTCost + ": ($" + bTotal + ")");
+		
+		int sTUsersCovered = (int)(currentBudget/targetPop.getLabelCost());
+		double percentDif = ((double)(totalAlgUsers - sTUsersCovered)/(double)sTUsersCovered);
+		adj = (int)(percentDif * 10000);
+		percentDif = adj/100.0;
+		System.out.println("Total number of users covered if allocating only to St: " + sTUsersCovered);
+		System.out.println("Total number of users covered using algorithm: " + totalAlgUsers);
+		System.out.println("Diference: " + (totalAlgUsers - sTUsersCovered) +
+				"\tPercentage improvement: " + (percentDif) + "%\n");
+	}
 	
 }
