@@ -29,10 +29,12 @@ public class OgAlgorithm {
 		}
 		targetPop = sT.getPop();
 		int deltaI = 0;
-		
+		int counter = 1;
 		// the actual original algorithm
 		do{
 			si = getLargestMarginalIncrement();
+			si.selectionOrder = counter;
+			counter++;
 			//System.out.println("Si chosen: P(S): " + si.getLabelCost() + "\tHi: " + si.getHsubI());
 			double siCost = (si.getLabelCost()*si.getPopSize()*(1.0 - si.getHsubI()));
 			deltaI = (int)(siCost * 100);

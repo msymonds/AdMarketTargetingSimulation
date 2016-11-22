@@ -6,10 +6,11 @@ public class USI {
 	ArrayList<User> pop = new ArrayList<User>();
 	ArrayList<User> sharedWithST = new ArrayList<User>();
 	int sharedUsers = 0;
+	int selectionOrder = 0;
 	double rSubI = 0.0;
 	double hSubI = 0.0;
 	double labelCost = 0.0;
-	
+	double totalSetCost = 0.0;
 	
 	public USI(){}
 	
@@ -17,20 +18,37 @@ public class USI {
 		this.traits = traits;
 		User[] masterPopulation = Driver.masterPopulation;
 		
-		for(User u : masterPopulation){
+		for(int i = 0;  i < masterPopulation.length; i++){
+			User u = masterPopulation[i];
 			boolean fits = true;
-			int i = 0;
-			while(fits && i < traits.length){
-				if(traits[i] != null){
-					if( (u.traits[i] == null) || (!(traits[i].equals(u.traits[i]))) )
+			//int i = 0;
+//			while(fits && i < traits.length){
+//				if(traits[i] != null){
+//					if( (u.traits[i] == null) || (!(traits[i].equals(u.traits[i]))) )
+//						fits = false;
+//				}
+//				i++;
+//			}
+			Characteristic[] mTraits = u.traits;
+			for(int j = 0; j < this.traits.length; j++){
+				if(this.traits[j] != null){
+					if(mTraits[j] != null){
+						if(!(mTraits[j].attributeS.equals(this.traits[j].attributeS))){
+							fits = false;
+							break;
+						}
+					} else {
 						fits = false;
+						break;
+					}
 				}
-				i++;
 			}
 			if(fits){
 				pop.add(u);
 			}
 		}
+		this.setLabelCost();
+		this.totalSetCost = this.getLabelCost()*this.getPopSize();
 	}
 	
 	public USI(Characteristic[] traits, User[] pop){
@@ -39,6 +57,8 @@ public class USI {
 		for(User u : pop){
 			this.pop.add(u);
 		}
+		setLabelCost();
+		totalSetCost = this.getLabelCost()*this.getPopSize();
 	}
 	
 	public double calculateRsubI(USI targetPop){
@@ -82,7 +102,7 @@ public class USI {
 	
 	public void setLabelCost(){
 		labelCost = 0.0;
-		for(Characteristic c : traits){
+		for(Characteristic c : this.traits){
 			if(c != null)
 				labelCost += c.cost;
 		}
@@ -93,6 +113,10 @@ public class USI {
 	public double getLabelCost(){
 		setLabelCost();
 		return labelCost;
+	}
+	
+	public double getTotalSetCost(){
+		return totalSetCost;
 	}
 	
 	public static USI getUSI(Characteristic[] target, ArrayList<USI> sample){
