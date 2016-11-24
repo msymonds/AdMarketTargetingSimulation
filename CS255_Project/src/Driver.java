@@ -8,7 +8,7 @@ import java.util.Iterator;
 public class Driver {
 	
 	static final Label[] masterLabelSet = LabelBuilder.getLabelSet();
-	static final User[] masterPopulation = UserBuilder.createPopulation(100000, masterLabelSet);
+	static final User[] masterPopulation = UserBuilder.createPopulation(10000000, masterLabelSet);
 	
 	// for St
 	static USI targetPop; // target Label set and users associated with set
@@ -33,7 +33,7 @@ public class Driver {
 		do{
 			sT = createRandomTargetLabelSet(4);
 			targetPop = new USI(sT);
-		} while(targetPop.getPopSize() < 100);
+		} while(targetPop.getPopSize() < 10000);
 		
 		targetUsers = new User[targetPop.getPopSize()];
 		Iterator uIter = targetPop.pop.iterator();
@@ -368,7 +368,8 @@ public class Driver {
 		try(  PrintWriter out = new PrintWriter( "comparativeOutput.txt" )  ){
 			
 			out.println("TargetPop Label Set: " + targetPop.getTraitsString());
-			out.println("PopSize: " + targetPop.getPopSize());
+			out.println("PopSize: " + targetPop.getPopSize() +
+					"\tP(S): " + targetPop.getLabelCost());
 			out.println("");
 			for(int i = 0; i < targetUsers.length; i++){
 				out.println("");
@@ -380,7 +381,9 @@ public class Driver {
 				 Iterator oIter = ((ArrayList<USI>) ogMatching[i]).iterator();
 				 while(oIter.hasNext()){
 					 USI ogUSI = (USI)oIter.next();
-					 out.println("Si label set: " + ogUSI.getTraitsString());
+					 out.println("Si label set: " + ogUSI.getTraitsString() +
+							 "\tP(S): " + ogUSI.getLabelCost() + 
+							 "\t|U(S)|: " + ogUSI.getPopSize());
 					 out.println("Users in labelSet: ");
 					 Iterator ogUIter = ogUSI.sharedWithST.iterator();
 					 while(ogUIter.hasNext()){
@@ -394,7 +397,9 @@ public class Driver {
 				 Iterator myIter = (myMatching[i]).iterator();
 				 while(myIter.hasNext()){
 					 USI myUSI = (USI)myIter.next();
-					 out.println("Si label set: " + myUSI.getTraitsString());
+					 out.println("Si label set: " + myUSI.getTraitsString() +
+							 "\tP(S): " + myUSI.getLabelCost() + 
+							 "\t|U(S)|: " + myUSI.getPopSize());
 					 out.println("Users in labelSet: ");
 					 Iterator myUIter = myUSI.sharedWithST.iterator();
 					 while(myUIter.hasNext()){
