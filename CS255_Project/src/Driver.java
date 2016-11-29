@@ -8,13 +8,15 @@ import java.util.Iterator;
 public class Driver {
 	
 	static final Label[] masterLabelSet = LabelBuilder.getLabelSet();
-	static final User[] masterPopulation = UserBuilder.createPopulation(10000000, masterLabelSet);
+	static final User[] masterPopulation = UserBuilder.createPopulation(1000000, masterLabelSet);
+	static long startTime, elapsedTime;
+	static String time;
 	
 	// for St
 	static USI targetPop; // target Label set and users associated with set
 	static User[] targetUsers;
 	static double sTCost = 0.0; // (P(S) * |U(St)|)
-	static final double BUDGET_ADJUSTMENT = 0.3; // adjust here for single run
+	static final double BUDGET_ADJUSTMENT = 0.05; // adjust here for single run
 	
 	// For OG Alg
 	static USI[] workingPermutations; // for OG Alg argument
@@ -33,7 +35,7 @@ public class Driver {
 		do{
 			sT = createRandomTargetLabelSet(4);
 			targetPop = new USI(sT);
-		} while(targetPop.getPopSize() < 10000);
+		} while(targetPop.getPopSize() < 1000 || targetPop.getLabelCost() < 3.0);
 		
 		targetUsers = new User[targetPop.getPopSize()];
 		Iterator uIter = targetPop.pop.iterator();
@@ -73,8 +75,12 @@ public class Driver {
 		
 		
 		//prep and run OG Alg
+		startTime = System.currentTimeMillis();
 		ArrayList<USI> permutations = OGAlgPrep.getQualifiedPermutations(targetPop);
+		elapsedTime = (System.currentTimeMillis() - startTime);
+		time = getTimeString(elapsedTime);
 		System.out.println("\nNumber of qualified permutations S(1...n): " + permutations.size());		
+		System.out.println("Elapsed time: " + time);
 		workingPermutations = new USI[permutations.size()];
 		Iterator permIter = permutations.iterator();
 		while(permIter.hasNext()){
@@ -87,9 +93,13 @@ public class Driver {
 		
 		
 		// prep and run My Alg
+		startTime = System.currentTimeMillis();
 		ArrayList<USI> myPermutations = MyAlgPrep.getQualifiedPermutations(targetPop);
+		elapsedTime = (System.currentTimeMillis() - startTime);
+		time = getTimeString(elapsedTime);
 		outputLabelSet("myS_LabelSet.txt", myPermutations);
 		System.out.println("\nNumber of my qualified permutations S(1...n): " + myPermutations.size());		
+		System.out.println("Elapsed time: " + time);
 		myWorkingPermutations = new USI[myPermutations.size()];
 		Iterator myPermIter = myPermutations.iterator();
 		counter = 0;
@@ -105,7 +115,17 @@ public class Driver {
 		printPopulation("StPop_postMy.txt");
 	}
 	
-	
+	public static String getTimeString(long elapsedTime){
+		String s = "";
+		int seconds = (int) ((elapsedTime / 1000) % 60);
+		int minutes = (int) (((elapsedTime / 1000) / 60) % 60);
+		int hours = (int) ((((elapsedTime / 1000) / 60) / 60) % 60);
+		s += hours + "h, ";
+		s += minutes + "m, ";
+		s += seconds + "s, ";
+		s += (elapsedTime % 1000) + "ms";
+		return s;
+	}
 	
 	public static void printPopulation(String s){
 		try(  PrintWriter out = new PrintWriter( s )  ){
@@ -200,16 +220,19 @@ public class Driver {
 		double[] b1;
 		if(choice == 0){
 			System.out.println("\nCalling original Approximation Algorithm(St, bo, S(1...n)) once");
+			startTime = System.currentTimeMillis();
 			b1 = OgAlgorithm.approxAlg(targetPop, budget, mySi);
+			elapsedTime = (System.currentTimeMillis() - startTime);
 			
 		} else {
 			System.out.println("\nCalling My Approximation Algorithm(St, bo, S(1...n)) once");
+			startTime = System.currentTimeMillis();
 			b1 = MyAlgorithm.myApproxAlg(targetPop, budget, mySi);
-			
+			elapsedTime = (System.currentTimeMillis() - startTime);
 		}
 		System.out.println("Done!");
-		
-		reportSingleRun(b1, mySi, choice);
+		time = getTimeString(elapsedTime);
+		reportSingleRun(b1, (""+(BUDGET_ADJUSTMENT * 100)), mySi, time, choice);
 		
 	}
 	
@@ -233,23 +256,30 @@ public class Driver {
 				mySi[j].rSubI = 0.0;
 			}
 			
-			double currentBudget = (sTCost * (i/10.0));
+			budget = (sTCost * (i/10.0));
 			double[] b1;
 			if(choice == 0){
-				b1 = OgAlgorithm.approxAlg(targetPop, currentBudget, mySi);
+				startTime = System.currentTimeMillis();
+				b1 = OgAlgorithm.approxAlg(targetPop, budget, mySi);
+				elapsedTime = (System.currentTimeMillis() - startTime);
 			}
 			else{
-				b1 = MyAlgorithm.myApproxAlg(targetPop, currentBudget, mySi);
+				startTime = System.currentTimeMillis();
+				b1 = MyAlgorithm.myApproxAlg(targetPop, budget, mySi);
+				elapsedTime = (System.currentTimeMillis() - startTime);
 			}
-			reportSeriesRun(b1, (i * 10), currentBudget, mySi, choice);
+			time = getTimeString(elapsedTime);
+			reportSingleRun(b1, (""+(i * 10)), mySi, time, choice);
+			reportSeriesRun(b1, (i * 10), budget, mySi, time, choice);
 			
 		}
 	}
 	
-	public static void reportSingleRun(double[] b1, USI[] mySi, int choice){
-		String s = "SingleReport" + (choice == 0 ? "OG":"My") + ".txt";
+	public static void reportSingleRun(double[] b1, String percent, USI[] mySi, String time, int choice){
+		String s = "Single_" + percent + "_" + (choice == 0 ? "OG":"My") + ".txt";
 		try(  PrintWriter out = new PrintWriter( s )  ){
 			int totalAlgUsers = 0;
+			out.println("Run Time: " + time);
 			out.println("Budget allocation result:");
 			double bTotal = 0.0;
 			ArrayList<User> coveredCount = new ArrayList<User>();
@@ -310,7 +340,7 @@ public class Driver {
 		
 	}
 	
-	public static void reportSeriesRun(double[] b1, double adjustment, double currentBudget, USI[] mySi, int choice){
+	public static void reportSeriesRun(double[] b1, double adjustment, double currentBudget, USI[] mySi, String time, int choice){
 		String s = "SeriesReport" + (choice == 0 ? "OG":"My") + ".txt";
 		try(  PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(s, true)))  ){
 			ArrayList<User> coveredCount = new ArrayList<User>();
@@ -336,6 +366,7 @@ public class Driver {
 					}
 				} // has budget allocated
 			}
+			out.println("Run Time: " + time);
 			out.println("\nAt " + adjustment + "% of total St cost of $" + 
 					sTCost + ": ($" + bTotal + ")");
 			totalAlgUsers = coveredCount.size();
