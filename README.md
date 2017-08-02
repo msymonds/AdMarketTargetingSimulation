@@ -1,4 +1,4 @@
-# CS255
+# AdMarketTargetingSimulation
 Online social ad market-targeting algorithm comparison
 
 This project creates a large number of subjects with randomized demographic attributes. 
